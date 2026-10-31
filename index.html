@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#070a13">
+  <meta name="description" content="SPACE SURVIVOR - A high-octane 2D arcade spaceship survival action game.">
+  <title>SPACE SURVIVOR | Arcade Spaceship Survival</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- Canvas Element -->
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- HUD Overlay (Visible during gameplay) -->
+  <div id="hud" class="hud-overlay ui-screen hidden">
+    <!-- Top Bar: Health, Level & XP, Stats, Controls -->
+    <div class="hud-top">
+      <!-- Player Status: Health & Shield -->
+      <div class="hud-panel player-status">
+        <div class="status-header">
+          <span class="status-label">HULL INTEGRITY</span>
+          <span id="hudHpText" class="status-val">100 / 100</span>
+        </div>
+        <div class="bar-container hp-bar-wrap">
+          <div id="hudHpFill" class="bar-fill hp-fill" style="width: 100%;"></div>
+          <div id="hudShieldFill" class="shield-indicator hidden">SHIELD ACTIVE</div>
+        </div>
+      </div>
+
+      <!-- Center: XP Progress & Level -->
+      <div class="hud-panel xp-status">
+        <div class="xp-header">
+          <span class="level-badge">LVL <span id="hudLevel">1</span></span>
+          <span class="xp-label">EXPERIENCE</span>
+          <span id="hudXpText" class="xp-val">0 / 100</span>
+        </div>
+        <div class="bar-container xp-bar-wrap">
+          <div id="hudXpFill" class="bar-fill xp-fill" style="width: 0%;"></div>
+        </div>
+      </div>
+
+      <!-- Right: Score, Time & Quick Controls -->
+      <div class="hud-panel stats-panel">
+        <div class="stat-pill">
+          <span class="stat-icon">⏱</span>
+          <span id="hudTimer">00:00</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-icon">⭐</span>
+          <span id="hudScore">0</span>
+        </div>
+        <div class="stat-pill kills-pill">
+          <span class="stat-icon">💀</span>
+          <span id="hudKills">0</span>
+        </div>
+
+        <button id="btnAudioToggle" class="btn-icon" title="Toggle Sound" aria-label="Toggle Sound">
+          <span class="sound-on-icon">🔊</span>
+          <span class="sound-off-icon hidden">🔇</span>
+        </button>
+        <button id="btnPause" class="btn-icon" title="Pause Game" aria-label="Pause Game">
+          <span>⏸</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Active Wave / Difficulty Warning Banner -->
+    <div id="waveBanner" class="wave-banner hidden">
+      <span id="waveText">WARNING: HOSTILE SWARM INCOMING</span>
+    </div>
+
+    <!-- Bottom Abilities & Touch Controls Indicator -->
+    <div class="hud-bottom">
+      <div class="ability-indicator">
+        <div class="ability-card" id="empAbility">
+          <div class="ability-key desktop-only">[SPACE]</div>
+          <div class="ability-info">
+            <span class="ability-name">EMP BLAST</span>
+            <div class="ability-cooldown-bar">
+              <div id="empCooldownFill" class="ability-fill" style="width: 100%;"></div>
+            </div>
+          </div>
+          <span id="empStatusText" class="ability-status">READY</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mobile Touch Controls -->
+  <div id="touchControls" class="touch-layer hidden">
+    <!-- Virtual Joystick (Left) -->
+    <div id="joystickZone" class="joystick-zone">
+      <div id="joystickBase" class="joystick-base">
+        <div id="joystickKnob" class="joystick-knob"></div>
+      </div>
+    </div>
+
+    <!-- Action Button: EMP Blast (Right) -->
+    <div class="touch-actions">
+      <button id="btnTouchEmp" class="touch-btn emp-btn">
+        <span class="touch-btn-glow"></span>
+        <span class="touch-btn-title">EMP</span>
+        <span class="touch-btn-sub">BURST</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Screen: Main Menu -->
+  <div id="screenMainMenu" class="screen-overlay active">
+    <div class="menu-container">
+      <div class="title-wrapper">
+        <div class="logo-sub">DEEP SPACE COMBAT PROTOCOL</div>
+        <h1 class="game-title">SPACE<span class="title-highlight">SURVIVOR</span></h1>
+        <p class="tagline">Survive. Vaporize. Evolve.</p>
+      </div>
+
+      <div class="menu-actions">
+        <button id="btnStartGame" class="btn-action primary-btn">
+          <span class="btn-glow"></span>
+          <span class="btn-text">INITIALIZE MISSION</span>
+        </button>
+        <button id="btnOpenInstructions" class="btn-action secondary-btn">
+          <span class="btn-text">COMBAT INTEL & CONTROLS</span>
+        </button>
+      </div>
+
+      <!-- Saved Records Summary -->
+      <div class="records-grid">
+        <div class="record-card">
+          <span class="record-label">BEST SCORE</span>
+          <span id="statBestScore" class="record-value">0</span>
+        </div>
+        <div class="record-card">
+          <span class="record-label">LONGEST SURVIVAL</span>
+          <span id="statBestTime" class="record-value">00:00</span>
+        </div>
+        <div class="record-card">
+          <span class="record-label">SHIPS DESTROYED</span>
+          <span id="statTotalKills" class="record-value">0</span>
+        </div>
+        <div class="record-card">
+          <span class="record-label">SORTIES LAUNCHED</span>
+          <span id="statGamesPlayed" class="record-value">0</span>
+        </div>
+      </div>
+
+      <div class="menu-footer">
+        <span>v1.0.0 • Pure Vanilla WebGL / Canvas Arcade</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen: Pause Menu -->
+  <div id="screenPause" class="screen-overlay modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 class="modal-title">MISSION PAUSED</h2>
+        <p class="modal-subtitle">Systems in standby mode</p>
+      </div>
+
+      <div class="modal-body pause-actions">
+        <button id="btnResumeGame" class="btn-action primary-btn">
+          <span class="btn-text">RESUME MISSION</span>
+        </button>
+        <button id="btnRestartGame" class="btn-action secondary-btn">
+          <span class="btn-text">RESTART MISSION</span>
+        </button>
+        <button id="btnQuitToMenu" class="btn-action danger-btn">
+          <span class="btn-text">ABORT TO MAIN MENU</span>
+        </button>
+      </div>
+
+      <div class="modal-footer">
+        <button id="btnToggleSoundPause" class="btn-text-only">
+          <span id="pauseSoundStatus">SOUND: ON</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen: Level-Up Upgrade Selection -->
+  <div id="screenLevelUp" class="screen-overlay modal-backdrop hidden">
+    <div class="levelup-container">
+      <div class="levelup-header">
+        <div class="levelup-tag">TACTICAL ENHANCEMENT DETECTED</div>
+        <h2 class="levelup-title">SELECT SHIP UPGRADE</h2>
+        <p class="levelup-desc">Level <span id="levelupNewLevel">2</span> reached! Choose 1 system module to integrate:</p>
+      </div>
+
+      <!-- 3 Upgrade Cards -->
+      <div id="upgradeCardsGrid" class="cards-grid">
+        <!-- Rendered dynamically via game.js -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen: Game Over -->
+  <div id="screenGameOver" class="screen-overlay modal-backdrop hidden">
+    <div class="modal-card gameover-card">
+      <div class="gameover-status-badge">VESSEL DESTROYED</div>
+      <h2 class="gameover-title">MISSION TERMINATED</h2>
+
+      <div id="newBestBanner" class="new-record-banner hidden">
+        ★ NEW PERSONAL BEST ACHIEVED! ★
+      </div>
+
+      <div class="results-grid">
+        <div class="result-item">
+          <span class="result-label">FINAL SCORE</span>
+          <span id="goFinalScore" class="result-val highlight">0</span>
+        </div>
+        <div class="result-item">
+          <span class="result-label">SURVIVAL TIME</span>
+          <span id="goSurvivalTime" class="result-val">00:00</span>
+        </div>
+        <div class="result-item">
+          <span class="result-label">ENEMIES DESTROYED</span>
+          <span id="goKills" class="result-val">0</span>
+        </div>
+        <div class="result-item">
+          <span class="result-label">UPGRADE LEVEL</span>
+          <span id="goLevel" class="result-val">1</span>
+        </div>
+      </div>
+
+      <div class="gameover-actions">
+        <button id="btnPlayAgain" class="btn-action primary-btn">
+          <span class="btn-glow"></span>
+          <span class="btn-text">DEPLOY AGAIN</span>
+        </button>
+        <button id="btnGameOverToMenu" class="btn-action secondary-btn">
+          <span class="btn-text">RETURN TO HANGAR</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen: Combat Intel & Controls Modal -->
+  <div id="modalInstructions" class="screen-overlay modal-backdrop hidden">
+    <div class="modal-card instructions-card">
+      <div class="modal-header">
+        <h2 class="modal-title">COMBAT INTEL & CONTROLS</h2>
+        <button id="btnCloseInstructions" class="btn-close" aria-label="Close Intel">&times;</button>
+      </div>
+
+      <div class="instructions-content">
+        <!-- Controls Guide -->
+        <div class="intel-section">
+          <h3 class="intel-heading">PILOT CONTROLS</h3>
+          <div class="controls-guide-grid">
+            <div class="ctrl-row">
+              <span class="ctrl-keys"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or <kbd>↑</kbd><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd></span>
+              <span class="ctrl-desc">Full 360° Omnidirectional Propulsion</span>
+            </div>
+            <div class="ctrl-row">
+              <span class="ctrl-keys"><kbd>SPACE</kbd></span>
+              <span class="ctrl-desc">Deploy EMP Shockwave (destroys bullets, damages & stuns nearby enemies)</span>
+            </div>
+            <div class="ctrl-row">
+              <span class="ctrl-keys"><kbd>ESC</kbd> or <kbd>P</kbd></span>
+              <span class="ctrl-desc">Tactical Pause</span>
+            </div>
+            <div class="ctrl-row">
+              <span class="ctrl-keys">AUTO-TARGET</span>
+              <span class="ctrl-desc">Main blaster turret automatically locks and fires at nearest hostiles</span>
+            </div>
+            <div class="ctrl-row">
+              <span class="ctrl-keys">MOBILE TOUCH</span>
+              <span class="ctrl-desc">Left thumb virtual joystick for flight, right thumb EMP trigger</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Enemy Intel Breakdown -->
+        <div class="intel-section">
+          <h3 class="intel-heading">HOSTILE SHIP CLASSIFICATIONS</h3>
+          <div class="enemy-intel-grid">
+            <div class="enemy-intel-card scout">
+              <div class="enemy-icon-circle scout-bg">▲</div>
+              <div class="enemy-details">
+                <h4>SCOUT INTERCEPTOR</h4>
+                <p>Swift, agile raider. Moves directly toward your vessel. Individually fragile but relentlessly closes distance.</p>
+              </div>
+            </div>
+            <div class="enemy-intel-card tank">
+              <div class="enemy-icon-circle tank-bg">⬡</div>
+              <div class="enemy-details">
+                <h4>ARMORED DREADNOUGHT</h4>
+                <p>Heavily shielded juggernaut. Absorbs massive plasma fire. Deals severe hull damage upon ramming.</p>
+              </div>
+            </div>
+            <div class="enemy-intel-card sniper">
+              <div class="enemy-icon-circle sniper-bg">◈</div>
+              <div class="enemy-details">
+                <h4>SNIPER FRIGATE</h4>
+                <p>Maintains standoff perimeter. Aims a targeting beam and fires high-velocity concentrated railgun bolts.</p>
+              </div>
+            </div>
+            <div class="enemy-intel-card swarm">
+              <div class="enemy-icon-circle swarm-bg">❖</div>
+              <div class="enemy-details">
+                <h4>SWARM STINGERS</h4>
+                <p>Hunts in aggressive wolfpacks. Unpredictable flocking vector. Vaporize them quickly before being surrounded.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Progression & Upgrades Info -->
+        <div class="intel-section">
+          <h3 class="intel-heading">SURVIVAL PROTOCOL</h3>
+          <p class="intel-text">
+            Destroying enemy ships releases glowing <strong>XP Energy Cores</strong>. Collect them to charge your reactor and trigger <strong>System Upgrades</strong>: Multi-shot lasers, overcharged plasma, defensive energy aegis, enhanced thrusters, and magnet fields.
+          </p>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button id="btnDismissInstructions" class="btn-action primary-btn">
+          <span class="btn-text">ACKNOWLEDGE & RETURN</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Audio unlock banner for mobile browsers (if required) -->
+  <div id="audioNotice" class="audio-notice hidden">
+    <span>Tap anywhere to enable sound</span>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
